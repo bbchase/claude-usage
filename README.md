@@ -36,8 +36,11 @@ for why.
   a browser tab. It respects light/dark mode and recomputes its own
   "updated X ago" / staleness label client-side every second.
 - **Statusline** — wired into Claude Code's `statusLine` setting, showing a
-  compact one-line summary of the three known windows, e.g.
-  `⚡ 5h 42% · wk 18% · fable 63%`. Always cache-only, no network, fast.
+  compact one-line summary of the three known windows, plus the session's
+  model:effort and context-window token usage (parsed from the session JSON
+  Claude Code pipes in on stdin), e.g.
+  `⚡ 5h 42% · wk 18% · fable 63% · Fable 5:medium · 65k tok (32% ctx)`.
+  Always cache-only, no network, fast.
 
 Color thresholds (Threshold Bands) are the same everywhere: green below
 70%, yellow 70-89%, red 90%+. In the Statusline, any window at 80%+ also

@@ -164,5 +164,52 @@ class Staleness(unittest.TestCase):
         self.assertTrue(cu.is_stale({}))
 
 
+class SessionSegments(unittest.TestCase):
+    SESSION = {
+        "model": {"id": "claude-fable-5", "display_name": "Fable 5"},
+        "effort": {"level": "medium"},
+        "context_window": {
+            "total_input_tokens": 63_400,
+            "total_output_tokens": 1_200,
+            "context_window_size": 200_000,
+            "used_percentage": 32.3,
+        },
+    }
+
+    def test_model_effort_and_tokens(self):
+        self.assertEqual(
+            cu.session_segments(self.SESSION),
+            ["Fable 5:medium", "65k tok (32% ctx)"],
+        )
+
+    def test_no_session(self):
+        self.assertEqual(cu.session_segments(None), [])
+        self.assertEqual(cu.session_segments({}), [])
+
+    def test_model_without_effort(self):
+        session = {"model": {"display_name": "Opus"}}
+        self.assertEqual(cu.session_segments(session), ["Opus"])
+
+    def test_tokens_without_percentage(self):
+        session = {"context_window": {"total_input_tokens": 500, "total_output_tokens": 0}}
+        self.assertEqual(cu.session_segments(session), ["500 tok"])
+
+    def test_null_current_usage_fields_ignored(self):
+        session = {
+            "model": {"display_name": "Fable 5"},
+            "context_window": {
+                "total_input_tokens": None,
+                "total_output_tokens": None,
+                "used_percentage": None,
+            },
+        }
+        self.assertEqual(cu.session_segments(session), ["Fable 5"])
+
+    def test_format_tokens(self):
+        self.assertEqual(cu.format_tokens(999), "999")
+        self.assertEqual(cu.format_tokens(64_600), "65k")
+        self.assertEqual(cu.format_tokens(1_234_000), "1.2M")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -428,7 +428,41 @@ def render_terminal(cache: dict | None) -> None:
 # --------------------------------------------------------------------------
 
 
-def render_statusline(cache: dict | None) -> None:
+def format_tokens(n: int) -> str:
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.0f}k"
+    return str(n)
+
+
+def session_segments(session: dict | None, use_color: bool = False) -> list[str]:
+    """Extra Statusline segments from the session JSON Claude Code pipes in:
+    model:effort and current context-window token usage."""
+    if not session:
+        return []
+    segments = []
+
+    model = (session.get("model") or {}).get("display_name")
+    if model:
+        effort = (session.get("effort") or {}).get("level")
+        segments.append(f"{model}:{effort}" if effort else model)
+
+    ctx = session.get("context_window") or {}
+    tokens = (ctx.get("total_input_tokens") or 0) + (ctx.get("total_output_tokens") or 0)
+    if tokens:
+        text = f"{format_tokens(tokens)} tok"
+        percent = ctx.get("used_percentage")
+        if isinstance(percent, (int, float)):
+            if use_color:
+                text = f"{color_for(percent)}{text}{RESET}"
+            text += f" ({percent:.0f}% ctx)"
+        segments.append(text)
+
+    return segments
+
+
+def render_statusline(cache: dict | None, session: dict | None = None) -> None:
     use_color = sys.stdout.isatty()
     raw = (cache or {}).get("raw")
 
@@ -446,8 +480,9 @@ def render_statusline(cache: dict | None) -> None:
         segments.append(segment)
 
     if not segments:
-        print("⚡ no usage data")
-        return
+        segments.append("no usage data")
+
+    segments.extend(session_segments(session, use_color))
 
     line = "⚡ " + " · ".join(segments)
 
@@ -667,14 +702,16 @@ def generate_html(cache: dict | None) -> None:
 # --------------------------------------------------------------------------
 
 
-def drain_stdin_if_piped() -> None:
-    """Statusline callers pass session JSON on stdin; we don't need it, but
-    read and discard it so the pipe doesn't back up."""
+def read_session_stdin() -> dict | None:
+    """Statusline callers pass session JSON (model, effort, context window,
+    ...) on stdin. Parse it; on a tty or bad input, return None."""
     try:
-        if not sys.stdin.isatty():
-            sys.stdin.read()
+        if sys.stdin.isatty():
+            return None
+        data = json.loads(sys.stdin.read())
+        return data if isinstance(data, dict) else None
     except Exception:
-        pass
+        return None
 
 
 def main() -> int:
@@ -694,8 +731,8 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.statusline:
-        drain_stdin_if_piped()
-        render_statusline(load_cache())
+        session = read_session_stdin()
+        render_statusline(load_cache(), session)
         return 0
 
     if args.fetch:
