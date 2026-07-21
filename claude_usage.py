@@ -436,7 +436,7 @@ def format_tokens(n: int) -> str:
 
 
 def session_segments(session: dict | None, use_color: bool = False) -> list[str]:
-    """Extra Statusline segments from the session JSON Claude Code pipes in:
+    """Extract Statusline segments from the session JSON Claude Code pipes in:
     model:effort and current context-window token usage."""
     if not session:
         return []
