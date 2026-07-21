@@ -522,6 +522,8 @@ def generate_html(cache: dict | None) -> None:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="60">
+<meta name="theme-color" content="#1a1a2e">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <title>Claude Usage</title>
 <style>
   :root {{
