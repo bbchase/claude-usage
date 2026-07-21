@@ -1,0 +1,5 @@
+#!/bin/sh
+# Thin wrapper around claude_usage.py so it can live on PATH.
+# Resolves its own real location so the symlink works from anywhere.
+SELF="$(readlink -f "$0")"
+exec /usr/bin/python3 "$(dirname "$SELF")/../claude_usage.py" "$@"
