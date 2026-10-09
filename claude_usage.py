@@ -16,7 +16,9 @@ Stdlib only. No third-party dependencies.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
+import http.client
 import json
 import os
 import subprocess
@@ -107,6 +109,7 @@ def get_access_token() -> str:
             capture_output=True,
             text=True,
             timeout=10,
+            check=False,
         )
     except Exception as e:  # e.g. FileNotFoundError, timeout
         raise TokenError(f"could not run `security`: {e}") from e
@@ -153,10 +156,8 @@ def call_usage_api(token: str) -> dict:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body = ""
-        try:
+        with contextlib.suppress(OSError, http.client.HTTPException):
             body = e.read().decode("utf-8", errors="replace")
-        except Exception:
-            pass
         raise FetchError(
             e.code, f"HTTP {e.code}: {body[:200]}", parse_retry_after(e.headers)
         ) from e
@@ -752,7 +753,7 @@ def read_session_stdin() -> dict | None:
             return None
         data = json.loads(sys.stdin.read())
         return data if isinstance(data, dict) else None
-    except Exception:
+    except (OSError, ValueError):
         return None
 
 

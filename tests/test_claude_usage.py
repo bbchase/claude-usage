@@ -11,6 +11,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import ClassVar
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -239,7 +240,7 @@ class RetryAfter(unittest.TestCase):
 
 
 class SessionSegments(unittest.TestCase):
-    SESSION = {
+    SESSION: ClassVar[dict] = {
         "model": {"id": "claude-fable-5", "display_name": "Fable 5"},
         "effort": {"level": "medium"},
         "context_window": {
