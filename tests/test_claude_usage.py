@@ -196,9 +196,10 @@ class CacheRobustness(unittest.TestCase):
             self.assertEqual([p.name for p in Path(d).iterdir()], ["usage.json"])
 
     def test_load_cache_missing_file(self):
-        with tempfile.TemporaryDirectory() as d:
-            with mock.patch.object(cu, "CACHE_FILE", Path(d) / "nope.json"):
-                self.assertIsNone(cu.load_cache())
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(
+            cu, "CACHE_FILE", Path(d) / "nope.json"
+        ):
+            self.assertIsNone(cu.load_cache())
 
 
 class RetryAfter(unittest.TestCase):
