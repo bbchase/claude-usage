@@ -201,6 +201,42 @@ class CacheRobustness(unittest.TestCase):
                 self.assertIsNone(cu.load_cache())
 
 
+class RetryAfter(unittest.TestCase):
+    def test_parse_retry_after(self):
+        self.assertEqual(cu.parse_retry_after({"Retry-After": "120"}), 120.0)
+        self.assertIsNone(cu.parse_retry_after({}))
+        self.assertIsNone(cu.parse_retry_after({"Retry-After": "Wed, 21 Oct"}))
+        self.assertIsNone(cu.parse_retry_after({"Retry-After": "-5"}))
+
+    def _cache_with_backoff(self, delta):
+        until = (cu.utcnow() + delta).isoformat()
+        old = (cu.utcnow() - dt.timedelta(minutes=30)).isoformat()
+        return {"raw": {}, "fetched_at": old, "last_error": {"status": 429, "retry_after_until": until}}
+
+    def test_backing_off(self):
+        self.assertTrue(cu.backing_off(self._cache_with_backoff(dt.timedelta(minutes=10))))
+        self.assertFalse(cu.backing_off(self._cache_with_backoff(-dt.timedelta(minutes=1))))
+        self.assertFalse(cu.backing_off({"last_error": None}))
+
+    def test_do_fetch_skips_network_while_backing_off(self):
+        cache = self._cache_with_backoff(dt.timedelta(minutes=10))
+        with mock.patch.object(cu, "load_cache", return_value=cache), mock.patch.object(
+            cu, "get_access_token", side_effect=AssertionError("should not fetch")
+        ):
+            self.assertIs(cu.do_fetch(force=False), cache)
+
+    def test_do_fetch_records_retry_after(self):
+        saved = {}
+        err = cu.FetchError(429, "HTTP 429", retry_after=600)
+        with mock.patch.object(cu, "load_cache", return_value=None), mock.patch.object(
+            cu, "get_access_token", return_value="t"
+        ), mock.patch.object(cu, "call_usage_api", side_effect=err), mock.patch.object(
+            cu, "save_cache", side_effect=saved.update
+        ):
+            cache = cu.do_fetch(force=False)
+        self.assertTrue(cu.backing_off(cache))
+
+
 class SessionSegments(unittest.TestCase):
     SESSION = {
         "model": {"id": "claude-fable-5", "display_name": "Fable 5"},

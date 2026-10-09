@@ -81,10 +81,11 @@ class FetchError(Exception):
     "network_error" / "token_error" otherwise.
     """
 
-    def __init__(self, status: Any, message: str):
+    def __init__(self, status: Any, message: str, retry_after: float | None = None):
         super().__init__(message)
         self.status = status
         self.message = message
+        self.retry_after = retry_after  # seconds, from a Retry-After header
 
 
 # --------------------------------------------------------------------------
@@ -127,6 +128,15 @@ def get_access_token() -> str:
     return token
 
 
+def parse_retry_after(headers: Any) -> float | None:
+    """Seconds from a numeric Retry-After header, else None."""
+    try:
+        value = float(headers.get("Retry-After"))
+    except (AttributeError, TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
 def call_usage_api(token: str) -> dict:
     """One authoritative Fetch of all Usage Windows from Anthropic."""
     req = urllib.request.Request(
@@ -147,7 +157,9 @@ def call_usage_api(token: str) -> dict:
             body = e.read().decode("utf-8", errors="replace")
         except Exception:
             pass
-        raise FetchError(e.code, f"HTTP {e.code}: {body[:200]}") from e
+        raise FetchError(
+            e.code, f"HTTP {e.code}: {body[:200]}", parse_retry_after(e.headers)
+        ) from e
     except urllib.error.URLError as e:
         raise FetchError("network_error", str(e.reason)) from e
     except Exception as e:
@@ -203,6 +215,16 @@ def is_stale(cache: dict | None) -> bool:
     return age is None or age > STALE_AFTER
 
 
+def backing_off(cache: dict) -> bool:
+    """True while the server's Retry-After from the last failed Fetch hasn't elapsed."""
+    until = (cache.get("last_error") or {}).get("retry_after_until")
+    try:
+        deadline = dt.datetime.fromisoformat(until)
+    except (TypeError, ValueError):
+        return False
+    return utcnow() < deadline
+
+
 def do_fetch(force: bool) -> dict:
     """Fetch fresh usage data if allowed, updating and returning the Cache.
 
@@ -214,6 +236,8 @@ def do_fetch(force: bool) -> dict:
     if not force:
         age = cache_age(cache)
         if age is not None and age < MIN_FETCH_INTERVAL:
+            return cache
+        if backing_off(cache):
             return cache
 
     try:
@@ -228,11 +252,16 @@ def do_fetch(force: bool) -> dict:
         save_cache(cache)
         return cache
     except FetchError as e:
+        now = utcnow()
         cache["last_error"] = {
             "status": e.status,
             "message": e.message,
-            "at": utcnow().isoformat(),
+            "at": now.isoformat(),
         }
+        if e.retry_after:
+            cache["last_error"]["retry_after_until"] = (
+                now + dt.timedelta(seconds=e.retry_after)
+            ).isoformat()
         save_cache(cache)
         return cache
 
