@@ -15,9 +15,11 @@ jobs:
           python-version: "3.12"
       - name: Unit tests
         run: python -m unittest discover -s tests -v
+      - name: Install dev tools
+        run: pip install -r requirements-dev.txt
       - name: Lint
-        run: |
-          pip install -r requirements-dev.txt
-          ruff check .
+        run: ruff check .
+      - name: Type check
+        run: mypy claude_usage.py
       - name: Shellcheck
         run: shellcheck install.sh bin/claude-usage
