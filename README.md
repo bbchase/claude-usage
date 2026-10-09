@@ -84,8 +84,11 @@ The installer:
    `~/Library/LaunchAgents/com.claude-usage.plist`, which runs
    `claude_usage.py --fetch` every 300 seconds (and once at load), logging
    to `~/.cache/claude-usage/launchd.log`.
-3. Prints the `statusLine` snippet to add to `~/.claude/settings.json` if
-   you want the Statusline (this part is manual).
+3. Sets the `statusLine` entry in `~/.claude/settings.json` (override the
+   path with `CLAUDE_USAGE_SETTINGS`), keeping a `settings.json.bak` copy.
+   If a different `statusLine` is already set, it asks before replacing it
+   (non-interactive runs leave it alone). The file is re-written as
+   standard 2-space JSON.
 
 Approve the macOS Keychain prompt on the first fetch.
 
