@@ -1,2 +1,2 @@
-# CI pins the ruff version (see .github/workflows/ci.yml); bump both together.
+# Version pinned in requirements-dev.txt (bumped by Dependabot).
 target-version = "py39"
