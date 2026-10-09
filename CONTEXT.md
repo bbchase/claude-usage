@@ -24,8 +24,8 @@ Glossary of terms for this project. Definitions only — no implementation detai
 
 **Terminal Command** — The `claude-usage` command; prints all Usage Windows with bars and Reset Times.
 
-**Web Page** — A static, self-reloading HTML dashboard pinned in a browser tab.
+**Web Page** — A static, self-reloading HTML dashboard pinned in a browser tab, generated from `dashboard/template.html`.
 
-**Statusline** — The compact single-line view inside Claude Code showing percentages for the three known windows.
+**Statusline** — The compact single-line view inside Claude Code showing a percentage for every Usage Window, followed by the session's model:effort and context-window token usage when Claude Code provides them.
 
 **Threshold Bands** — The color coding applied to a Usage Window's percentage: green below 70%, yellow 70–89%, red at 90% and above. At 80%+ the Statusline also shows that window's Reset Time.
