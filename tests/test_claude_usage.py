@@ -185,6 +185,16 @@ class CacheRobustness(unittest.TestCase):
                 with mock.patch.object(cu, "CACHE_FILE", path):
                     self.assertIsNone(cu.load_cache())
 
+    def test_save_cache_roundtrip_leaves_no_temp_files(self):
+        with tempfile.TemporaryDirectory() as d:
+            with mock.patch.object(cu, "CACHE_DIR", Path(d)), mock.patch.object(
+                cu, "CACHE_FILE", Path(d) / "usage.json"
+            ):
+                cu.save_cache({"raw": None, "fetched_at": "x"})
+                cu.save_cache({"raw": None, "fetched_at": "y"})
+                self.assertEqual(cu.load_cache()["fetched_at"], "y")
+            self.assertEqual([p.name for p in Path(d).iterdir()], ["usage.json"])
+
     def test_load_cache_missing_file(self):
         with tempfile.TemporaryDirectory() as d:
             with mock.patch.object(cu, "CACHE_FILE", Path(d) / "nope.json"):

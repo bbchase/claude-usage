@@ -18,8 +18,10 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -172,10 +174,16 @@ def load_cache() -> dict | None:
 
 def save_cache(cache: dict) -> None:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    tmp = CACHE_FILE.with_suffix(".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        json.dump(cache, f, indent=2)
-    tmp.replace(CACHE_FILE)
+    # Unique temp name so concurrent writers (launchd --fetch vs manual
+    # --refresh) can't clobber each other's half-written file.
+    fd, tmp_name = tempfile.mkstemp(dir=CACHE_DIR, prefix="usage.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(cache, f, indent=2)
+        os.replace(tmp_name, CACHE_FILE)
+    except BaseException:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise
 
 
 def cache_age(cache: dict | None) -> dt.timedelta | None:
