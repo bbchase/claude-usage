@@ -210,6 +210,25 @@ class CacheRobustness(unittest.TestCase):
             self.assertIsNone(cu.load_cache())
 
 
+class GenerateHtml(unittest.TestCase):
+    def test_template_placeholders_are_all_filled(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "index.html"
+            with mock.patch.object(cu, "DASHBOARD_PATH", out):
+                cu.generate_html({"raw": LIMITS_SHAPE, "fetched_at": "2026-07-21T00:00:00+00:00"})
+            html = out.read_text()
+        self.assertNotIn("__", html)
+        self.assertIn("week (fable)", html)
+        self.assertIn("42%", html)
+
+    def test_empty_cache_renders(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "index.html"
+            with mock.patch.object(cu, "DASHBOARD_PATH", out):
+                cu.generate_html(None)
+            self.assertIn("No cached usage data yet", out.read_text())
+
+
 class RetryAfter(unittest.TestCase):
     def test_parse_retry_after(self):
         self.assertEqual(cu.parse_retry_after({"Retry-After": "120"}), 120.0)
