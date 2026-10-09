@@ -26,6 +26,7 @@ import sys
 import tempfile
 import urllib.error
 import urllib.request
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -279,13 +280,13 @@ def do_fetch(force: bool) -> dict:
 # --------------------------------------------------------------------------
 
 
+@dataclass
 class Window:
-    def __init__(self, key: str, label: str, percent: float, resets_at: dt.datetime, short: str):
-        self.key = key
-        self.label = label
-        self.percent = percent
-        self.resets_at = resets_at
-        self.short = short
+    key: str
+    label: str
+    percent: float
+    resets_at: dt.datetime
+    short: str
 
 
 def prettify_key(key: str) -> str:
