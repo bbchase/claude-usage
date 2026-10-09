@@ -39,6 +39,7 @@ CACHE_FILE = CACHE_DIR / "usage.json"
 
 REPO_ROOT = Path(__file__).resolve().parent
 DASHBOARD_PATH = REPO_ROOT / "dashboard" / "index.html"
+TEMPLATE_PATH = REPO_ROOT / "dashboard" / "template.html"
 
 MIN_FETCH_INTERVAL = dt.timedelta(minutes=5)
 STALE_AFTER = dt.timedelta(minutes=12)
@@ -597,147 +598,13 @@ def generate_html(cache: dict | None) -> None:
 
     fetched_at_js = json.dumps(fetched_at)
 
-    html = f"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="60">
-<meta name="theme-color" content="#1a1a2e">
-<link rel="icon" type="image/svg+xml" href="icon.svg">
-<title>Claude Usage</title>
-<style>
-  :root {{
-    color-scheme: light dark;
-    --bg: #ffffff;
-    --fg: #1a1a1a;
-    --muted: #6b7280;
-    --card-bg: #f5f5f7;
-    --track: #e5e7eb;
-    --green: #22c55e;
-    --yellow: #eab308;
-    --red: #ef4444;
-    --error: #ef4444;
-  }}
-  @media (prefers-color-scheme: dark) {{
-    :root {{
-      --bg: #111114;
-      --fg: #f2f2f2;
-      --muted: #9ca3af;
-      --card-bg: #1c1c22;
-      --track: #33333a;
-    }}
-  }}
-  * {{ box-sizing: border-box; }}
-  body {{
-    margin: 0;
-    padding: 2rem 1.25rem;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-  }}
-  main {{
-    width: 100%;
-    max-width: 560px;
-  }}
-  h1 {{
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0 0 1.25rem;
-    letter-spacing: 0.01em;
-  }}
-  .window {{
-    background: var(--card-bg);
-    border-radius: 12px;
-    padding: 0.9rem 1.1rem;
-    margin-bottom: 0.75rem;
-  }}
-  .window-header {{
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 0.5rem;
-  }}
-  .label {{
-    font-weight: 500;
-  }}
-  .percent {{
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-  }}
-  .percent.green {{ color: var(--green); }}
-  .percent.yellow {{ color: var(--yellow); }}
-  .percent.red {{ color: var(--red); }}
-  .bar-track {{
-    background: var(--track);
-    border-radius: 999px;
-    height: 10px;
-    overflow: hidden;
-  }}
-  .bar-fill {{
-    height: 100%;
-    border-radius: 999px;
-  }}
-  .bar-fill.green {{ background: var(--green); }}
-  .bar-fill.yellow {{ background: var(--yellow); }}
-  .bar-fill.red {{ background: var(--red); }}
-  .reset {{
-    margin-top: 0.4rem;
-    font-size: 0.82rem;
-    color: var(--muted);
-  }}
-  .empty {{ color: var(--muted); }}
-  .error {{
-    color: var(--error);
-    font-size: 0.85rem;
-  }}
-  footer {{
-    margin-top: 1.5rem;
-    font-size: 0.8rem;
-    color: var(--muted);
-  }}
-</style>
-</head>
-<body>
-<main>
-  <h1>Claude Usage</h1>
-  {"".join(rows)}
-  {error_html}
-  <footer id="age">updated &mdash;</footer>
-</main>
-<script>
-  const fetchedAt = {fetched_at_js};
-  const staleAfterMs = {int(STALE_AFTER.total_seconds() * 1000)};
-  function render() {{
-    const el = document.getElementById("age");
-    if (!fetchedAt) {{
-      el.textContent = "no data fetched yet";
-      return;
-    }}
-    const fetchedMs = new Date(fetchedAt).getTime();
-    const ageMs = Date.now() - fetchedMs;
-    const seconds = Math.max(0, Math.floor(ageMs / 1000));
-    let text;
-    if (seconds < 60) {{
-      text = `updated ${{seconds}}s ago`;
-    }} else if (seconds < 3600) {{
-      text = `updated ${{Math.floor(seconds / 60)}}m ago`;
-    }} else {{
-      text = `updated ${{Math.floor(seconds / 3600)}}h ${{Math.floor((seconds % 3600) / 60)}}m ago`;
-    }}
-    if (ageMs > staleAfterMs) {{
-      text += " (stale)";
-    }}
-    el.textContent = text;
-  }}
-  render();
-  setInterval(render, 1000);
-</script>
-</body>
-</html>
-"""
+    html = (
+        TEMPLATE_PATH.read_text(encoding="utf-8")
+        .replace("__ROWS__", "".join(rows))
+        .replace("__ERROR__", error_html)
+        .replace("__FETCHED_AT__", fetched_at_js)
+        .replace("__STALE_AFTER_MS__", str(int(STALE_AFTER.total_seconds() * 1000)))
+    )
 
     DASHBOARD_PATH.parent.mkdir(parents=True, exist_ok=True)
     DASHBOARD_PATH.write_text(html, encoding="utf-8")
