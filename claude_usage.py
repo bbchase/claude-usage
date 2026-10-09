@@ -164,9 +164,10 @@ def utcnow() -> dt.datetime:
 def load_cache() -> dict | None:
     try:
         with CACHE_FILE.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+            data = json.load(f)
+    except (OSError, ValueError):
         return None
+    return data if isinstance(data, dict) else None
 
 
 def save_cache(cache: dict) -> None:
@@ -180,7 +181,12 @@ def save_cache(cache: dict) -> None:
 def cache_age(cache: dict | None) -> dt.timedelta | None:
     if not cache or not cache.get("fetched_at"):
         return None
-    fetched_at = dt.datetime.fromisoformat(cache["fetched_at"])
+    try:
+        fetched_at = dt.datetime.fromisoformat(cache["fetched_at"])
+    except (TypeError, ValueError):
+        return None
+    if fetched_at.tzinfo is None:
+        fetched_at = fetched_at.replace(tzinfo=dt.timezone.utc)
     return utcnow() - fetched_at
 
 
