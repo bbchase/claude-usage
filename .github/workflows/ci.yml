@@ -17,7 +17,7 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Lint
         run: |
-          pip install ruff
+          pip install ruff==0.16.10
           ruff check .
       - name: Shellcheck
         run: shellcheck install.sh bin/claude-usage

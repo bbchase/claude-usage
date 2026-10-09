@@ -1,0 +1,2 @@
+# CI pins the ruff version (see .github/workflows/ci.yml); bump both together.
+target-version = "py39"
