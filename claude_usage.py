@@ -221,9 +221,11 @@ def is_stale(cache: dict | None) -> bool:
 def backing_off(cache: dict) -> bool:
     """True while the server's Retry-After from the last failed Fetch hasn't elapsed."""
     until = (cache.get("last_error") or {}).get("retry_after_until")
+    if not isinstance(until, str):
+        return False
     try:
         deadline = dt.datetime.fromisoformat(until)
-    except (TypeError, ValueError):
+    except ValueError:
         return False
     return utcnow() < deadline
 
