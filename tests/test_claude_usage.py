@@ -8,8 +8,10 @@ either an endpoint change or a code change.
 
 import datetime as dt
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -162,6 +164,31 @@ class Staleness(unittest.TestCase):
     def test_missing_cache_is_stale(self):
         self.assertTrue(cu.is_stale(None))
         self.assertTrue(cu.is_stale({}))
+
+
+class CacheRobustness(unittest.TestCase):
+    def test_malformed_fetched_at_is_stale_not_a_crash(self):
+        self.assertIsNone(cu.cache_age({"fetched_at": "garbage"}))
+        self.assertIsNone(cu.cache_age({"fetched_at": 123}))
+        self.assertTrue(cu.is_stale({"fetched_at": "garbage"}))
+
+    def test_naive_fetched_at_treated_as_utc(self):
+        naive = (cu.utcnow() - dt.timedelta(minutes=1)).replace(tzinfo=None)
+        age = cu.cache_age({"fetched_at": naive.isoformat()})
+        self.assertLess(age, dt.timedelta(minutes=2))
+
+    def test_load_cache_rejects_non_dict_and_bad_json(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "usage.json"
+            for content in ("[1, 2]", "not json", ""):
+                path.write_text(content)
+                with mock.patch.object(cu, "CACHE_FILE", path):
+                    self.assertIsNone(cu.load_cache())
+
+    def test_load_cache_missing_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            with mock.patch.object(cu, "CACHE_FILE", Path(d) / "nope.json"):
+                self.assertIsNone(cu.load_cache())
 
 
 class SessionSegments(unittest.TestCase):
