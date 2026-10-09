@@ -371,12 +371,20 @@ def get_windows(raw: dict | None) -> list[Window]:
 # --------------------------------------------------------------------------
 
 
-def color_for(percent: float) -> str:
+def band(percent: float) -> str:
+    """Threshold Band for a percentage: "green", "yellow" or "red"."""
     if percent >= 90:
-        return RED
+        return "red"
     if percent >= 70:
-        return YELLOW
-    return GREEN
+        return "yellow"
+    return "green"
+
+
+ANSI_BAND_COLORS = {"green": GREEN, "yellow": YELLOW, "red": RED}
+
+
+def color_for(percent: float) -> str:
+    return ANSI_BAND_COLORS[band(percent)]
 
 
 def format_reset(resets_at: dt.datetime, now: dt.datetime | None = None) -> tuple[str, str]:
@@ -558,12 +566,7 @@ def generate_html(cache: dict | None) -> None:
     rows = []
     for w in windows:
         percent = max(0.0, min(100.0, w.percent))
-        if percent >= 90:
-            css_class = "red"
-        elif percent >= 70:
-            css_class = "yellow"
-        else:
-            css_class = "green"
+        css_class = band(percent)
         relative, absolute = format_reset(w.resets_at)
         rows.append(
             f"""
