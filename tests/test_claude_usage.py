@@ -127,6 +127,13 @@ class Formatting(unittest.TestCase):
         self.assertEqual(cu.color_for(89.9), cu.YELLOW)
         self.assertEqual(cu.color_for(90), cu.RED)
 
+    def test_band_thresholds(self):
+        self.assertEqual(cu.band(0), "green")
+        self.assertEqual(cu.band(69.9), "green")
+        self.assertEqual(cu.band(70), "yellow")
+        self.assertEqual(cu.band(89.9), "yellow")
+        self.assertEqual(cu.band(90), "red")
+
     def test_format_reset_relative(self):
         now = dt.datetime(2026, 7, 20, 12, 0, tzinfo=UTC)
         rel, _ = cu.format_reset(now + dt.timedelta(hours=2, minutes=14), now)
